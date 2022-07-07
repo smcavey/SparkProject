@@ -1,3 +1,4 @@
+import org.apache.spark.rdd.RDD
 class NeighborDensity extends Serializable {
   def start: Unit ={
     val dataRDD = sc.textFile("/user/ds503/input/points.csv")
@@ -12,6 +13,12 @@ class NeighborDensity extends Serializable {
     // get neighbors for cells and create a (cell, count, [neighbors]) triple
     val cellNeighborsPopRDD = cellPopRDD.map(cell => (cell._1, cell._2, getNeighbors(cell._1)))
     cellNeighborsPopRDD.take(5).foreach(println)
+    // create new rdd of cell, count of points in cell, neighbors array, neighbor count of points array
+    val cellPopAndNeighborsDensities = cellNeighborsPopRDD.map(cell => (cell, getDensities(cellNeighborsPopRDD, cell._3)))
+    cellPopAndNeighborsDensities.take(5).foreach(println)
+    //val cellDensityRDD = cellNeighborsPopRDD.map(cell => (cell._1, getRelativeDensity(cell._1, cell._2, cell._3)))
+//    val cellDensityRDD = cellNeighborsPopRDD.map(cell => (cellNeighborsPopRDD.map(cellNeighborsPopRDD._3(0)._2).sum()))
+//    cellDensityRDD.take(5).foreach(println)
     }
   // take a x,y point and return a cell number
     def assignCell(point: Array[Int]): Int ={
@@ -56,6 +63,33 @@ class NeighborDensity extends Serializable {
     else{ // middle
       return Array[Int](cellNum+1, cellNum-1, cellNum+500, cellNum-500, cellNum+501, cellNum+499, cellNum-501, cellNum-499)
     }
+  }
+//  // take a cell triple (cell, count, [neighbors])
+//  def getRelativeDensity(cellNum: Int, cellPop: Int, cellNeighbors: Array[Int]): Double ={
+//    val cell = cellNum
+//    val count = cellPop
+//    val neighbors = cellNeighbors
+//    val neighborsCount = neighbors.size
+//    val neighborsSum = 0
+//    neighborsSum = for(i <- neighbors){ // summation of cell pop for all neighbors
+//      neighborsSum = neighborsSum + getCellPop(i)
+//    }
+//  }
+//  // get the cellPop for any cell
+//  def getCellPop(cell: Int): Int ={
+//
+//  }
+//}
+  def getDensities(cellPopNeighborsRDD: RDD[(Int, Int, Array[Int])], neighbors: Array[Int]): Array[Int] = { // given RDD return array of densities for neighbors
+    val neighborsArray = neighbors
+    val densities = Array[Int]()
+    // filter rdd to fetch only neighbors
+    val filteredRDD = cellPopNeighborsRDD.filter(_.keySet contains key)
+    // add the count of cells of all neighbors to array
+    for(i <- neighborsArray){
+      densities :+ filteredRDD.first.get(i)._2
+    }
+    return densities
   }
 }
 object Run {
